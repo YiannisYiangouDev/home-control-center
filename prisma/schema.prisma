@@ -1,0 +1,311 @@
+// ============================================
+// Home Control Center — Prisma Schema
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ---- Enums ----
+
+enum UserRole {
+  ADMIN
+  VIEWER
+}
+
+enum ServerType {
+  UNRAID
+  NEXTCLOUD
+  GENERIC
+}
+
+enum ServiceType {
+  DOCKER
+  WEB
+  API
+  DATABASE
+  CUSTOM
+}
+
+enum ServiceStatus {
+  ONLINE
+  OFFLINE
+  DEGRADED
+  UNKNOWN
+}
+
+enum AlertSeverity {
+  CRITICAL
+  WARNING
+  INFO
+}
+
+enum AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+enum EmailStatus {
+  QUEUED
+  SENT
+  FAILED
+  BOUNCED
+}
+
+enum ShortcutActionType {
+  PHONE_CALL
+  SMS
+  WHATSAPP
+  TELEGRAM
+  EMAIL
+  URL
+  CUSTOM
+}
+
+// ---- Models ----
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  role          UserRole  @default(VIEWER)
+  avatar        String?
+  failedAttempts Int      @default(0)
+  lockedUntil   DateTime?
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      Session[]
+  shortcuts     Shortcut[]
+  shortcutCategories ShortcutCategory[]
+  contacts      Contact[]
+  auditLogs     AuditLog[]
+  settings      Setting[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique @db.VarChar(500)
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("sessions")
+}
+
+model Server {
+  id                   String     @id @default(cuid())
+  name                 String
+  type                 ServerType
+  address              String
+  encryptedCredentials String?    @db.Text
+  isActive             Boolean    @default(true)
+  lastCheckedAt        DateTime?
+  createdAt            DateTime   @default(now())
+  updatedAt            DateTime   @updatedAt
+
+  metrics  Metric[]
+  alerts   Alert[]
+  services Service[]
+
+  @@map("servers")
+}
+
+model Service {
+  id              String        @id @default(cuid())
+  name            String
+  type            ServiceType
+  url             String
+  icon            String?
+  color           String?
+  checkInterval   Int           @default(60)
+  expectedStatus  Int           @default(200)
+  status          ServiceStatus @default(UNKNOWN)
+  responseTime    Int?
+  lastCheckedAt   DateTime?
+  lastOnlineAt    DateTime?
+  serverId        String?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  server  Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  metrics Metric[]
+  alerts  Alert[]
+
+  @@index([serverId])
+  @@index([status])
+  @@map("services")
+}
+
+model Metric {
+  id         String   @id @default(cuid())
+  serverId   String?
+  serviceId  String?
+  cpu        Float?
+  ram        Float?
+  storage    Float?
+  temperature Float?
+  networkIn  Float?
+  networkOut Float?
+  responseTime Int?
+  diskRead   Float?
+  diskWrite  Float?
+  timestamp  DateTime @default(now())
+
+  server  Server?  @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serverId, timestamp])
+  @@index([serviceId, timestamp])
+  @@index([timestamp])
+  @@map("metrics")
+}
+
+model Alert {
+  id            String        @id @default(cuid())
+  serverId      String?
+  serviceId     String?
+  severity      AlertSeverity
+  title         String
+  message       String        @db.Text
+  status        AlertStatus   @default(ACTIVE)
+  acknowledgedAt DateTime?
+  resolvedAt    DateTime?
+  emailSent     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  server  Server?  @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  service Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([status, severity])
+  @@index([serverId])
+  @@index([serviceId])
+  @@index([createdAt])
+  @@map("alerts")
+}
+
+model Contact {
+  id        String  @id @default(cuid())
+  userId    String
+  name      String
+  phone     String?
+  email     String?
+  whatsapp  String?
+  telegram  String?
+  category  String  @default("General")
+  avatar    String?
+  isFavorite Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shortcuts Shortcut[]
+
+  @@index([userId])
+  @@map("contacts")
+}
+
+model ShortcutCategory {
+  id     String @id @default(cuid())
+  name   String
+  icon   String @default("Folder")
+  color  String @default("#00b4d8")
+  order  Int    @default(0)
+  userId String
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shortcuts Shortcut[]
+
+  @@index([userId])
+  @@map("shortcut_categories")
+}
+
+model Shortcut {
+  id         String             @id @default(cuid())
+  userId     String
+  title      String
+  action     String
+  actionType ShortcutActionType
+  icon       String             @default("Link")
+  color      String             @default("#00b4d8")
+  order      Int                @default(0)
+  categoryId String?
+  contactId  String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  user     User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category ShortcutCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  contact  Contact?          @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([userId, order])
+  @@index([categoryId])
+  @@map("shortcuts")
+}
+
+model EmailLog {
+  id        String      @id @default(cuid())
+  recipient String
+  subject   String
+  template  String
+  body      String?     @db.LongText
+  status    EmailStatus @default(QUEUED)
+  resendId  String?
+  error     String?     @db.Text
+  attempts  Int         @default(0)
+  sentAt    DateTime?
+  createdAt DateTime    @default(now())
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_logs")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  resource  String
+  details   String?  @db.Text
+  ipAddress String?
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Setting {
+  id     String @id @default(cuid())
+  key    String
+  value  String @db.Text
+  userId String?
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([key, userId])
+  @@index([userId])
+  @@map("settings")
+}

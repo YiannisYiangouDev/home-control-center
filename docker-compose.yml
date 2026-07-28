@@ -1,0 +1,106 @@
+# ============================================
+# Home Control Center — Docker Compose
+# ============================================
+# Usage:
+#   cp .env.example .env  (then edit values)
+#   docker compose up -d
+#   docker compose logs -f app
+
+services:
+  # ---- Next.js Application ----
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hcc-app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
+      - AUTH_SECRET=${AUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - EMAIL_FROM=${EMAIL_FROM}
+      - UNRAID_URL=${UNRAID_URL}
+      - UNRAID_API_KEY=${UNRAID_API_KEY}
+      - NEXTCLOUD_URL=${NEXTCLOUD_URL}
+      - NEXTCLOUD_USERNAME=${NEXTCLOUD_USERNAME}
+      - NEXTCLOUD_APP_PASSWORD=${NEXTCLOUD_APP_PASSWORD}
+      - NEXT_PUBLIC_VAPID_PUBLIC_KEY=${NEXT_PUBLIC_VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=${VAPID_SUBJECT}
+      - WORKER_API_SECRET=${WORKER_API_SECRET}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - hcc-net
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ---- MySQL 8 Database ----
+  mysql:
+    image: mysql:8.0
+    container_name: hcc-mysql
+    restart: unless-stopped
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - hcc-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --max_connections=200
+      --innodb_buffer_pool_size=256M
+
+  # ---- Background Worker (Cron) ----
+  worker:
+    image: alpine:latest
+    container_name: hcc-worker
+    restart: unless-stopped
+    environment:
+      - WORKER_API_URL=http://app:3000
+      - WORKER_API_SECRET=${WORKER_API_SECRET}
+      - POLLING_INTERVAL=${POLLING_INTERVAL:-60}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - hcc-net
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      echo '🔄 Home Control Center Worker Started'
+      while true; do
+        wget -q --header='Authorization: Bearer '$$WORKER_API_SECRET -O- $$WORKER_API_URL/api/cron/poll-services 2>/dev/null || echo 'Poll failed'
+        sleep $$POLLING_INTERVAL
+      done
+      "
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  hcc-net:
+    driver: bridge

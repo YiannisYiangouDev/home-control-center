@@ -1,0 +1,300 @@
+@import "tailwindcss";
+
+/* ============================================
+   HOME CONTROL CENTER — Design System
+   Dark-first, Grafana/Home Assistant inspired
+   ============================================ */
+
+@theme {
+  /* Background Layers */
+  --color-bg-deep: hsl(222 47% 5%);
+  --color-bg-base: hsl(222 47% 7%);
+  --color-bg-surface: hsl(222 35% 10%);
+  --color-bg-elevated: hsl(222 30% 13%);
+  --color-bg-overlay: hsl(222 25% 16%);
+
+  /* Glass Effect */
+  --color-glass: hsl(222 35% 12% / 0.6);
+  --color-glass-border: hsl(220 20% 25% / 0.4);
+  --color-glass-hover: hsl(222 35% 14% / 0.7);
+
+  /* Primary - Cyan Blue */
+  --color-primary-50: hsl(195 100% 95%);
+  --color-primary-100: hsl(195 100% 85%);
+  --color-primary-200: hsl(195 100% 75%);
+  --color-primary-300: hsl(195 100% 65%);
+  --color-primary-400: hsl(195 100% 55%);
+  --color-primary-500: hsl(195 100% 50%);
+  --color-primary-600: hsl(200 100% 45%);
+  --color-primary-700: hsl(205 100% 40%);
+  --color-primary-800: hsl(210 100% 35%);
+  --color-primary-900: hsl(210 100% 25%);
+
+  /* Success - Emerald */
+  --color-success-400: hsl(160 84% 49%);
+  --color-success-500: hsl(160 84% 39%);
+  --color-success-600: hsl(160 84% 29%);
+
+  /* Warning - Amber */
+  --color-warning-400: hsl(38 92% 60%);
+  --color-warning-500: hsl(38 92% 50%);
+  --color-warning-600: hsl(38 92% 40%);
+
+  /* Danger - Rose */
+  --color-danger-400: hsl(0 84% 70%);
+  --color-danger-500: hsl(0 84% 60%);
+  --color-danger-600: hsl(0 84% 50%);
+
+  /* Text */
+  --color-text-primary: hsl(210 40% 98%);
+  --color-text-secondary: hsl(215 20% 65%);
+  --color-text-muted: hsl(215 15% 45%);
+  --color-text-inverse: hsl(222 47% 7%);
+
+  /* Borders */
+  --color-border-default: hsl(220 15% 18%);
+  --color-border-subtle: hsl(220 15% 14%);
+  --color-border-accent: hsl(195 100% 50% / 0.3);
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.3), 0 1px 2px hsl(0 0% 0% / 0.2);
+  --shadow-elevated: 0 4px 12px hsl(0 0% 0% / 0.4), 0 2px 4px hsl(0 0% 0% / 0.3);
+  --shadow-glow-primary: 0 0 20px hsl(195 100% 50% / 0.15);
+  --shadow-glow-success: 0 0 20px hsl(160 84% 39% / 0.15);
+  --shadow-glow-danger: 0 0 20px hsl(0 84% 60% / 0.15);
+
+  /* Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ============================================
+   Base Styles
+   ============================================ */
+
+* {
+  border-color: var(--color-border-default);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-bg-deep);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Subtle gradient background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -20%, hsl(195 100% 50% / 0.06), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%, hsl(260 80% 50% / 0.04), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============================================
+   Custom Scrollbar
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(220 15% 25%);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(220 15% 35%);
+}
+
+/* ============================================
+   Glassmorphism Card
+   ============================================ */
+
+.glass-card {
+  background: var(--color-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-base);
+}
+
+.glass-card:hover {
+  background: var(--color-glass-hover);
+  box-shadow: var(--shadow-elevated);
+  border-color: hsl(220 20% 30% / 0.5);
+}
+
+.glass-card-static {
+  background: var(--color-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+/* ============================================
+   Glow Effects
+   ============================================ */
+
+.glow-primary {
+  box-shadow: var(--shadow-glow-primary);
+  border-color: var(--color-border-accent);
+}
+
+.glow-success {
+  box-shadow: var(--shadow-glow-success);
+  border-color: hsl(160 84% 39% / 0.3);
+}
+
+.glow-danger {
+  box-shadow: var(--shadow-glow-danger);
+  border-color: hsl(0 84% 60% / 0.3);
+}
+
+/* ============================================
+   Status Indicators
+   ============================================ */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+}
+
+.status-dot-online {
+  background: var(--color-success-400);
+  box-shadow: 0 0 8px var(--color-success-400);
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.status-dot-offline {
+  background: var(--color-danger-400);
+  box-shadow: 0 0 8px var(--color-danger-400);
+}
+
+.status-dot-warning {
+  background: var(--color-warning-400);
+  box-shadow: 0 0 8px var(--color-warning-400);
+  animation: pulse-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============================================
+   Gradient Text
+   ============================================ */
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-primary-400), var(--color-primary-300));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-text-warm {
+  background: linear-gradient(135deg, var(--color-warning-400), var(--color-danger-400));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   Utility Animations
+   ============================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+.animate-slide-in {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* ============================================
+   Metric Numbers (Monospace)
+   ============================================ */
+
+.metric-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ============================================
+   Focus Ring
+   ============================================ */
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+/* ============================================
+   Page Transition Container
+   ============================================ */
+
+.page-container {
+  animation: fade-in 0.3s ease-out;
+}
