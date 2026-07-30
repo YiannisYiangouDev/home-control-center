@@ -12,7 +12,6 @@ import {
   Server,
   AlertCircle,
 } from "lucide-react";
-import Link from "next/link";
 
 function LoginForm() {
   const router = useRouter();
@@ -164,18 +163,6 @@ function LoginForm() {
               )}
             </button>
           </form>
-
-          <div className="mt-6 pt-6 border-t border-border-subtle text-center">
-            <p className="text-text-muted text-xs">
-              First time?{" "}
-              <Link
-                href="/setup"
-                className="text-primary-400 hover:text-primary-300 transition-colors"
-              >
-                Set up your account
-              </Link>
-            </p>
-          </div>
         </div>
 
         {/* Security badge */}

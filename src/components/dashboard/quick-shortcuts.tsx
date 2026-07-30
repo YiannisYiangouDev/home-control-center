@@ -1,64 +1,51 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Phone,
-  MessageSquare,
-  Globe,
-  Mail,
-  Shield,
-  Zap,
-  ExternalLink,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface QuickShortcutItem {
-  id: string;
-  title: string;
-  icon: string;
-  color: string;
-  action: string;
-}
-
-// Mock data
-const mockShortcuts: QuickShortcutItem[] = [
-  { id: "1", title: "Call Dad", icon: "Phone", color: "#34d399", action: "tel:+1234567890" },
-  { id: "2", title: "WhatsApp Mom", icon: "MessageSquare", color: "#22c55e", action: "https://wa.me/1234567890" },
-  { id: "3", title: "Nextcloud", icon: "Globe", color: "#00b4d8", action: "https://cloud.local" },
-  { id: "4", title: "Plex", icon: "Globe", color: "#e5a00d", action: "https://plex.local" },
-  { id: "5", title: "Vaultwarden", icon: "Shield", color: "#60a5fa", action: "https://vault.local" },
-  { id: "6", title: "Home Assistant", icon: "Zap", color: "#f472b6", action: "https://ha.local" },
-];
+import { Phone, MessageSquare, Globe, Mail, Shield, Zap } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  Phone,
-  MessageSquare,
-  Globe,
-  Mail,
-  Shield,
-  Zap,
+  Phone, MessageSquare, Globe, Mail, Shield, Zap,
 };
 
-export function QuickShortcuts() {
+const seedShortcuts = [
+  { id: "nc", title: "Call Mum", icon: "Phone", color: "#f472b6", action: "tel:+" },
+  { id: "unraid", title: "Call Dad", icon: "Phone", color: "#34d399", action: "tel:+" },
+  { id: "ig", title: "SMS ss", icon: "MessageSquare", color: "#34d399", action: "sms:+35799823800&body=good morninggg" },
+  { id: "insta", title: "Insta", icon: "MessageSquare", color: "#E4405F", action: "https://www.instagram.com/direct/inbox/" },
+  { id: "wg", title: "WG", icon: "Shield", color: "#8b5cf6", action: "http://192.168.0.200:8900/Settings/VPNManager" },
+  { id: "vw", title: "Vault", icon: "Shield", color: "#175ddc", action: "https://vault.local" },
+  { id: "ac", title: "❄️ AC", icon: "Zap", color: "#00b4d8", action: "http://192.168.0.200:8888" },
+  { id: "nc2", title: "Nextcloud", icon: "Globe", color: "#00b4d8", action: "https://arxeia.yiangouweb.com" },
+  { id: "ur", title: "Unraid", icon: "Zap", color: "#f59e0b", action: "http://192.168.0.200:8900" },
+];
+
+interface QuickShortcutsProps {
+  shortcuts?: readonly any[];
+}
+
+export function QuickShortcuts({ shortcuts = [] }: QuickShortcutsProps) {
+  const items = shortcuts.length > 0
+    ? shortcuts.map((s: any) => ({
+        id: s.id,
+        title: s.title,
+        icon: s.icon || "Globe",
+        color: s.color || "#00b4d8",
+        action: s.action,
+      }))
+    : seedShortcuts;
+
   return (
     <div className="glass-card-static p-5 h-full flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Zap className="w-4 h-4 text-text-muted" />
-          <h3 className="text-sm font-medium text-text-secondary">
-            Quick Shortcuts
-          </h3>
+          <h3 className="text-sm font-medium text-text-secondary">Quick Shortcuts</h3>
         </div>
-        <a
-          href="/shortcuts"
-          className="text-xs text-primary-400 hover:text-primary-300 transition-colors"
-        >
-          View all
-        </a>
+        <a href="/shortcuts" className="text-xs text-primary-400 hover:text-primary-300 transition-colors">View all</a>
       </div>
 
       <div className="grid grid-cols-3 gap-2 flex-1">
-        {mockShortcuts.map((shortcut, index) => {
+        {items.map((shortcut, index) => {
           const Icon = iconMap[shortcut.icon] || Globe;
 
           return (
@@ -76,16 +63,11 @@ export function QuickShortcuts() {
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center transition-all group-hover:scale-110"
-                style={{
-                  backgroundColor: `${shortcut.color}15`,
-                  color: shortcut.color,
-                }}
+                style={{ backgroundColor: `${shortcut.color}15`, color: shortcut.color }}
               >
                 <Icon className="w-5 h-5" />
               </div>
-              <span className="text-[10px] font-medium text-text-secondary text-center truncate w-full">
-                {shortcut.title}
-              </span>
+              <span className="text-[10px] font-medium text-text-secondary text-center truncate w-full">{shortcut.title}</span>
             </motion.a>
           );
         })}

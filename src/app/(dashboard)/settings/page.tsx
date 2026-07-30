@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useSession, signOut } from "next-auth/react";
 import {
-  Settings,
   Server,
   Mail,
   Shield,
@@ -12,9 +12,10 @@ import {
   Key,
   Globe,
   ChevronRight,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -58,12 +59,41 @@ const settingsSections = [
 ];
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const user = session?.user as { name?: string; email?: string; image?: string } | undefined;
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="visible" className="space-y-8 page-container max-w-4xl">
       <div>
         <h1 className="text-2xl font-bold text-text-primary">Settings</h1>
         <p className="text-sm text-text-muted mt-1">Configure your Home Control Center</p>
       </div>
+
+      {/* User Profile Card */}
+      <motion.div variants={item} className="glass-card p-5">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white text-xl font-bold shrink-0">
+            {user?.name?.charAt(0)?.toUpperCase() || "A"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-lg font-semibold text-text-primary">{user?.name || "Admin"}</p>
+            <p className="text-sm text-text-muted">{user?.email || "admin@homeserver.local"}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-flex items-center gap-1 text-[10px] text-primary-400 bg-primary-500/10 px-2 py-0.5 rounded-full">
+                <ShieldCheck className="w-3 h-3" /> ADMIN
+              </span>
+              <span className="text-[10px] text-text-muted">v1.0.0</span>
+            </div>
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium text-danger-400 bg-danger-400/10 border border-danger-400/20 hover:bg-danger-400/20 transition-all"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Logout
+          </button>
+        </div>
+      </motion.div>
 
       {settingsSections.map((section) => (
         <motion.div key={section.title} variants={item}>

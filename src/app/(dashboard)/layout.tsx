@@ -21,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { NAV_ITEMS, MOBILE_NAV_ITEMS, APP_NAME } from "@/lib/constants";
+import { PullToRefresh } from "@/components/dashboard/PullToRefresh";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard,
@@ -320,9 +321,9 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-y-auto">
+        <PullToRefresh>
           <div className="p-4 lg:p-6">{children}</div>
-        </div>
+        </PullToRefresh>
 
         {/* ============ Mobile Bottom Nav ============ */}
         <nav className="lg:hidden border-t border-border-subtle bg-bg-base/95 backdrop-blur-sm flex items-center justify-around px-2 py-1 safe-area-bottom shrink-0">

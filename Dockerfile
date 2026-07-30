@@ -8,7 +8,8 @@ FROM node:22-alpine AS deps
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY package.json package-lock.json* ./
-RUN npm ci --omit=dev 2>/dev/null || npm install --omit=dev
+COPY prisma ./prisma/
+RUN npm ci 2>/dev/null || npm install
 
 # Stage 2: Build the application
 FROM node:22-alpine AS builder
@@ -44,8 +45,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy Prisma files for migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./

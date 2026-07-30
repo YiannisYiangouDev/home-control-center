@@ -4,14 +4,16 @@ export class UnraidClient {
   private client: GraphQLClient;
 
   constructor(url: string, apiKey: string) {
-    this.client = new GraphQLClient(`${url}/graphql`, {
+    const cleanUrl = url.replace(/\/Docker\/?$/, "").replace(/\/$/, "");
+    this.client = new GraphQLClient(`${cleanUrl}/graphql`, {
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        "x-api-key": apiKey,
       },
     });
   }
 
   async getSystemMetrics() {
+    // Static info + array capacity (works with basic API key)
     const query = gql`
       query SystemMetrics {
         info {
@@ -19,40 +21,25 @@ export class UnraidClient {
             hostname
             platform
             uptime
+            distro
+            release
+            kernel
           }
           cpu {
             manufacturer
             brand
             cores
-            physicalCores
-          }
-          mem {
-            total
-            used
-            free
+            threads
+            speed
           }
         }
-        metrics {
-          cpu {
-            currentLoad
-            currentLoadUser
-            currentLoadSystem
-          }
-          mem {
-            total
-            used
-            free
-            available
-          }
-          temp {
-            main
-            cores
-            max
-          }
-          networkStats {
-            iface
-            rx_sec
-            tx_sec
+        array {
+          capacity {
+            kilobytes {
+              free
+              used
+              total
+            }
           }
         }
       }
@@ -66,27 +53,61 @@ export class UnraidClient {
     }
   }
 
+  async getLiveMetrics() {
+    // Live CPU + memory + network (requires INFO READ_ANY permission)
+    const query = gql`
+      query LiveMetrics {
+        metrics {
+          cpu {
+            percentTotal
+            cpus {
+              percentTotal
+            }
+          }
+          memory {
+            total
+            free
+            used
+            available
+            percentTotal
+            swapTotal
+            swapFree
+          }
+          network {
+            name
+            rxSec
+            txSec
+          }
+        }
+      }
+    `;
+
+    try {
+      return await this.client.request(query);
+    } catch (error) {
+      console.error("Unraid live metrics fetch error:", error);
+      return null;
+    }
+  }
+
   async getDockerContainers() {
     const query = gql`
       query DockerContainers {
         docker {
           containers {
             id
-            name
+            names
             image
             state
             status
             ports {
-              IP
-              PrivatePort
-              PublicPort
-              Type
+              ip
+              privatePort
+              publicPort
+              type
             }
-            mounts {
-              Source
-              Destination
-              Mode
-            }
+            mounts
+            networkSettings
           }
         }
       }
@@ -122,19 +143,16 @@ export class UnraidClient {
     const query = gql`
       query ArrayStatus {
         array {
-          status
+          state
           disks {
             name
             device
             size
-            used
-            free
+            fsUsed
+            fsFree
             temp
             status
             type
-            smart {
-              passed
-            }
           }
         }
       }

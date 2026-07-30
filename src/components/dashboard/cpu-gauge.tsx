@@ -1,10 +1,12 @@
 "use client";
 
 interface CpuGaugeProps {
-  value: number; // 0-100
+  value: number;
   size?: number;
   label?: string;
   color?: string;
+  unit?: string;
+  maxValue?: number;
 }
 
 export function CpuGauge({
@@ -12,10 +14,12 @@ export function CpuGauge({
   size = 120,
   label = "CPU",
   color = "#00b4d8",
+  unit = "%",
+  maxValue = 100,
 }: CpuGaugeProps) {
   const radius = (size - 16) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (value / 100) * circumference;
+  const strokeDashoffset = circumference - (Math.min(value, maxValue) / maxValue) * circumference;
   const center = size / 2;
 
   return (
@@ -52,7 +56,7 @@ export function CpuGauge({
           <span className="metric-value text-2xl font-bold text-text-primary">
             {Math.round(value)}
           </span>
-          <span className="text-xs text-text-muted">%</span>
+          <span className="text-xs text-text-muted">{unit}</span>
         </div>
       </div>
       {label && (

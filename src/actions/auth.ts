@@ -1,13 +1,17 @@
 "use server";
 
-import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from "@/lib/auth";
-import { registerSchema } from "@/lib/validators";
 import type { ActionResult } from "@/types";
-import { DEFAULT_SHORTCUT_CATEGORIES } from "@/lib/constants";
 
-export async function register(formData: FormData): Promise<ActionResult> {
+export async function register(_formData: FormData): Promise<ActionResult> {
+  // Registration is disabled — admin account already exists
+  return { success: false, error: "Registration is currently disabled. Contact your administrator." };
+}
+
+// Keep the old code as dead code below in case re-enabled
+/* DISABLED:
+export async function ___register_old(formData: FormData): Promise<ActionResult> {
   try {
     const raw = {
       email: formData.get("email") as string,
@@ -79,6 +83,7 @@ export async function register(formData: FormData): Promise<ActionResult> {
     return { success: false, error: "Failed to create account" };
   }
 }
+*/
 
 export async function login(formData: FormData): Promise<ActionResult> {
   try {

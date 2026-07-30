@@ -12,22 +12,12 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: THEME_COLORS.primary,
     orientation: "portrait-primary",
     categories: ["utilities", "productivity"],
+    prefer_related_applications: false,
     icons: [
       {
-        src: "/icons/icon-192.png",
+        src: "/icons/icon-192.svg",
         sizes: "192x192",
-        type: "image/png",
-      },
-      {
-        src: "/icons/icon-512.png",
-        sizes: "512x512",
-        type: "image/png",
-      },
-      {
-        src: "/icons/icon-512-maskable.png",
-        sizes: "512x512",
-        type: "image/png",
-        purpose: "maskable",
+        type: "image/svg+xml",
       },
     ],
     shortcuts: [
