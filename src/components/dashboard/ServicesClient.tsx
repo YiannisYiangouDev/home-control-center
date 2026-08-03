@@ -5,7 +5,17 @@ import { motion } from "framer-motion";
 import {
   Plus, Search, MoreVertical, CheckCircle2, XCircle,
   AlertTriangle, Activity, Clock, Zap, X, Loader2,
+  ChevronDown, ChevronUp,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { cn } from "@/lib/utils";
 import { createService } from "@/actions/services";
 import type { Service } from "@prisma/client";
@@ -100,11 +110,17 @@ function AddServiceModal({ show, onClose }: { show: boolean; onClose: () => void
 
 interface ServicesClientProps {
   services: readonly (Service & { serverName?: string | null })[];
+  history?: Record<string, { time: string; ms: number }[]>;
 }
 
-export function ServicesClient({ services }: ServicesClientProps) {
+export function ServicesClient({ services, history = {} }: ServicesClientProps) {
   const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const online = services.filter((s) => s.status === "ONLINE").length;
   const offline = services.filter((s) => s.status === "OFFLINE").length;
@@ -180,6 +196,14 @@ export function ServicesClient({ services }: ServicesClientProps) {
             const StatusIcon = config.icon;
             const icon = getIcon(service.name);
             const color = getColor(service.name);
+            const isExpanded = !!expandedCards[service.id];
+            const serviceHistory = history[service.id] || [];
+
+            // Format timestamp strings to HH:MM format for tooltips and X-Axis
+            const formattedServiceHistory = serviceHistory.map((h) => ({
+              ...h,
+              formattedTime: new Date(h.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            }));
 
             return (
               <motion.div key={service.id} variants={item} className="glass-card p-4">
@@ -212,11 +236,67 @@ export function ServicesClient({ services }: ServicesClientProps) {
                 </div>
 
                 {service.status === "ONLINE" && service.responseTime != null && (
-                  <div className="mt-2">
-                    <div className="h-1 bg-bg-elevated rounded-full overflow-hidden">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((service.responseTime / 500) * 100, 100)}%`, background: getBarColor(service.responseTime) }} />
+                  <div className="mt-2 flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="h-1 bg-bg-elevated rounded-full overflow-hidden">
+                        <div className="h-full rounded-full transition-all" style={{ width: `${Math.min((service.responseTime / 500) * 100, 100)}%`, background: getBarColor(service.responseTime) }} />
+                      </div>
                     </div>
+                    {serviceHistory.length > 0 && (
+                      <button
+                        onClick={() => toggleExpand(service.id)}
+                        className="p-1 rounded bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-muted hover:text-text-secondary transition-all shrink-0"
+                        title={isExpanded ? "Hide response history" : "Show response history"}
+                      >
+                        {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
                   </div>
+                )}
+
+                {/* If offline/degraded but has history, show the toggle button separately */}
+                {service.status !== "ONLINE" && serviceHistory.length > 0 && (
+                  <div className="mt-2 flex justify-end">
+                    <button
+                      onClick={() => toggleExpand(service.id)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-bg-elevated border border-border-default hover:bg-bg-surface text-text-muted hover:text-text-secondary transition-all"
+                    >
+                      {isExpanded ? "Hide History" : "Show History"}
+                      {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </button>
+                  </div>
+                )}
+
+                {/* Expandable Chart Details */}
+                {isExpanded && serviceHistory.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    className="mt-4 pt-3 border-t border-border-subtle"
+                  >
+                    <p className="text-[10px] font-medium text-text-muted mb-2">Response Time (24h)</p>
+                    <div className="h-24 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={formattedServiceHistory} margin={{ top: 5, right: 5, left: -30, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id={`colorMs-${service.id}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#00b4d8" stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor="#00b4d8" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.1} />
+                          <XAxis dataKey="formattedTime" stroke="#9ca3af" fontSize={8} tickLine={false} />
+                          <YAxis stroke="#9ca3af" fontSize={8} tickLine={false} />
+                          <Tooltip
+                            contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "6px", padding: "4px 8px" }}
+                            labelStyle={{ color: "#9ca3af", fontSize: "10px" }}
+                            itemStyle={{ fontSize: "10px", padding: 0 }}
+                          />
+                          <Area type="monotone" dataKey="ms" name="Ping" stroke="#00b4d8" strokeWidth={1.5} fillOpacity={1} fill={`url(#colorMs-${service.id})`} />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </motion.div>
                 )}
               </motion.div>
             );

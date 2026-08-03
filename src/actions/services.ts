@@ -167,3 +167,37 @@ export async function checkAllServices(): Promise<ActionResult> {
 
   return { success: true, message: `Checked ${services.length} services` };
 }
+
+export async function getServicesHistory(hours = 24) {
+  const session = process.env.BYPASS_AUTH === "true" ? { user: { role: "ADMIN" } } : await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const metrics = await prisma.metric.findMany({
+    where: {
+      serviceId: { not: null },
+      timestamp: { gte: cutoff },
+    },
+    orderBy: { timestamp: "asc" },
+    select: {
+      serviceId: true,
+      responseTime: true,
+      timestamp: true,
+    },
+  });
+
+  // Group metrics by serviceId
+  const history: Record<string, { time: string; ms: number }[]> = {};
+  for (const m of metrics) {
+    if (!m.serviceId) continue;
+    if (!history[m.serviceId]) history[m.serviceId] = [];
+    history[m.serviceId].push({
+      time: m.timestamp.toISOString(),
+      ms: m.responseTime || 0,
+    });
+  }
+
+  return history;
+}

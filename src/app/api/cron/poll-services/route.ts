@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { checkAllServices } from "@/actions/services";
+import { logUnraidMetrics } from "@/actions/unraid";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export async function GET(request: Request) {
 
   try {
     const result = await checkAllServices();
+    // Fire and forget logging Unraid server metrics historically
+    logUnraidMetrics().catch((e) => console.error("Poll Unraid metrics logger error:", e));
     return NextResponse.json(result);
   } catch (error) {
     console.error("Poll services error:", error);

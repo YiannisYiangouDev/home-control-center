@@ -12,6 +12,15 @@ import {
   Fan,
   AlertCircle,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { StatusCard } from "@/components/dashboard/status-card";
 import { CpuGauge } from "@/components/dashboard/cpu-gauge";
 import { StorageBar } from "@/components/dashboard/storage-bar";
@@ -25,9 +34,10 @@ const item = {
 interface UnraidOverviewClientProps {
   systemInfo: any | null;
   arrayStatus: any | null;
+  history?: any[];
 }
 
-export function UnraidOverviewClient({ systemInfo, arrayStatus }: UnraidOverviewClientProps) {
+export function UnraidOverviewClient({ systemInfo, arrayStatus, history = [] }: UnraidOverviewClientProps) {
   // Convert uptime ISO timestamp or seconds to Xd Xh format
   const formatUptime = (uptime?: string | number) => {
     if (!uptime) return "Unknown";
@@ -80,7 +90,10 @@ export function UnraidOverviewClient({ systemInfo, arrayStatus }: UnraidOverview
   const memInfo = metrics?.memory;
   const memUsagePercent = memInfo ? Math.round(memInfo.percentTotal) : 0;
   const memTotalGB = memInfo ? (Number(memInfo.total) / (1024 * 1024 * 1024)).toFixed(0) : null;
-  const memFreeGB = memInfo ? (Number(memInfo.free) / (1024 * 1024 * 1024)).toFixed(1) : null;
+  const formattedHistory = history.map((h: any) => ({
+    ...h,
+    time: new Date(h.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  }));
 
   return (
     <div className="space-y-6">
@@ -244,6 +257,74 @@ export function UnraidOverviewClient({ systemInfo, arrayStatus }: UnraidOverview
           )}
         </div>
       </motion.div>
+
+      {/* Historical Resource Charts */}
+      {history && history.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* CPU / RAM History Chart */}
+          <motion.div variants={item} className="glass-card-static p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <Cpu className="w-5 h-5 text-text-muted" />
+              <h3 className="text-sm font-medium text-text-secondary">System Load History (24h)</h3>
+            </div>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={formattedHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCpu" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00b4d8" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#00b4d8" stopOpacity={0}/>
+                    </linearGradient>
+                    <linearGradient id="colorRam" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                  <XAxis dataKey="time" stroke="#9ca3af" fontSize={10} tickLine={false} />
+                  <YAxis stroke="#9ca3af" fontSize={10} domain={[0, 100]} unit="%" tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
+                    labelStyle={{ color: "#9ca3af", fontSize: "12px" }}
+                    itemStyle={{ fontSize: "12px" }}
+                  />
+                  <Area type="monotone" dataKey="cpu" name="CPU" stroke="#00b4d8" strokeWidth={2} fillOpacity={1} fill="url(#colorCpu)" />
+                  <Area type="monotone" dataKey="ram" name="RAM" stroke="#8b5cf6" strokeWidth={2} fillOpacity={1} fill="url(#colorRam)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+          {/* Disk Temperature History Chart */}
+          <motion.div variants={item} className="glass-card-static p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <Thermometer className="w-5 h-5 text-text-muted" />
+              <h3 className="text-sm font-medium text-text-secondary">Max Disk Temperature (24h)</h3>
+            </div>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={formattedHistory} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f87171" stopOpacity={0.2}/>
+                      <stop offset="95%" stopColor="#f87171" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" opacity={0.2} />
+                  <XAxis dataKey="time" stroke="#9ca3af" fontSize={10} tickLine={false} />
+                  <YAxis stroke="#9ca3af" fontSize={10} domain={[20, 60]} unit="°C" tickLine={false} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: "8px" }}
+                    labelStyle={{ color: "#9ca3af", fontSize: "12px" }}
+                    itemStyle={{ fontSize: "12px" }}
+                  />
+                  <Area type="monotone" dataKey="temperature" name="Temp" stroke="#f87171" strokeWidth={2} fillOpacity={1} fill="url(#colorTemp)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

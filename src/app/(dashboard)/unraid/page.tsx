@@ -1,4 +1,4 @@
-import { getUnraidSystemMetrics, getUnraidArrayStatus } from "@/actions/unraid";
+import { getUnraidSystemMetrics, getUnraidArrayStatus, getUnraidHistoryMetrics } from "@/actions/unraid";
 import { UnraidOverviewClient } from "@/components/unraid/UnraidOverviewClient";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +7,7 @@ export const revalidate = 10;
 export default async function UnraidPage() {
   const systemInfo = await getUnraidSystemMetrics().catch(() => null);
   const arrayStatus = await getUnraidArrayStatus().catch(() => null);
+  const history = await getUnraidHistoryMetrics(24).catch(() => []);
 
   return (
     <div className="space-y-6 page-container">
@@ -27,7 +28,7 @@ export default async function UnraidPage() {
         </div>
       </div>
 
-      <UnraidOverviewClient systemInfo={systemInfo} arrayStatus={arrayStatus} />
+      <UnraidOverviewClient systemInfo={systemInfo} arrayStatus={arrayStatus} history={history} />
     </div>
   );
 }

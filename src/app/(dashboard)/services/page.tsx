@@ -1,22 +1,24 @@
 import { Suspense } from "react";
-import { getServices } from "@/actions/services";
+import { getServices, getServicesHistory } from "@/actions/services";
 import { ServicesClient } from "@/components/dashboard/ServicesClient";
 import type { Service } from "@prisma/client";
 
-// Revalidate every 60 seconds to keep service status fresh
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function ServicesPage() {
   let services: (Service & { serverName?: string | null })[] = [];
+  let history: Record<string, { time: string; ms: number }[]> = {};
+  
   try {
     services = await getServices();
+    history = await getServicesHistory(24).catch(() => ({}));
   } catch {
     // DB may be empty or unavailable; render empty state
   }
 
   return (
     <Suspense fallback={<ServicesSkeleton />}>
-      <ServicesClient services={services} />
+      <ServicesClient services={services} history={history} />
     </Suspense>
   );
 }

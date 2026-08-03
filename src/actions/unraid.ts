@@ -1,8 +1,87 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { createUnraidClient } from "@/services/unraid/client";
 import type { ActionResult } from "@/types";
+
+export async function logUnraidMetrics() {
+  const client = createUnraidClient();
+  if (!client) return;
+
+  try {
+    // 1. Ensure Unraid server entry exists in the DB
+    await prisma.server.upsert({
+      where: { id: "unraid" },
+      update: { address: process.env.UNRAID_URL || "" },
+      create: {
+        id: "unraid",
+        name: "Unraid Tower",
+        type: "UNRAID",
+        address: process.env.UNRAID_URL || "",
+      },
+    });
+
+    // 2. Query current metrics from the client
+    const metricsData = await getUnraidSystemMetrics();
+    const arrayData = await getUnraidArrayStatus();
+
+    if (!metricsData) return;
+
+    const cpuPct = metricsData.metrics?.cpu?.percentTotal;
+    const memUsagePercent = metricsData.metrics?.memory ? Math.round(metricsData.metrics.memory.percentTotal) : undefined;
+
+    // Storage capacity calculation
+    const disks = arrayData?.disks || [];
+    const dataDisks = disks.filter((d: any) => d.type === "DATA" || d.type === "data");
+    const totalKB = dataDisks.reduce((acc: number, d: any) => acc + Number(d.size || 0), 0);
+    const usedKB = dataDisks.reduce((acc: number, d: any) => acc + Number(d.fsUsed || 0), 0);
+    const storageUsagePercent = totalKB > 0 ? (usedKB / totalKB) * 100 : undefined;
+
+    // Maximum SMART drive temperature
+    const diskTemps = disks.map((d: any) => Number(d.temp || 0)).filter((t: number) => t > 0);
+    const maxDiskTemp = diskTemps.length > 0 ? Math.max(...diskTemps) : undefined;
+
+    // Save metric to database
+    await prisma.metric.create({
+      data: {
+        serverId: "unraid",
+        cpu: cpuPct != null ? Number(cpuPct) : undefined,
+        ram: memUsagePercent != null ? Number(memUsagePercent) : undefined,
+        storage: storageUsagePercent != null ? Number(storageUsagePercent) : undefined,
+        temperature: maxDiskTemp != null ? Number(maxDiskTemp) : undefined,
+        timestamp: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to log Unraid metrics:", error);
+  }
+}
+
+export async function getUnraidHistoryMetrics(hours = 24) {
+  const session = process.env.BYPASS_AUTH === "true" ? { user: { role: "ADMIN" } } : await auth();
+  if (!session) {
+    throw new Error("Unauthorized");
+  }
+
+  const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
+  const metrics = await prisma.metric.findMany({
+    where: {
+      serverId: "unraid",
+      timestamp: { gte: cutoff },
+    },
+    orderBy: { timestamp: "asc" },
+  });
+
+  return metrics.map((m) => ({
+    timestamp: m.timestamp.toISOString(),
+    cpu: m.cpu,
+    ram: m.ram,
+    storage: m.storage,
+    temperature: m.temperature,
+  }));
+}
+
 
 export async function getUnraidDockerContainers() {
   const session = process.env.BYPASS_AUTH === "true" ? { user: { role: "ADMIN" } } : await auth();
