@@ -1,13 +1,38 @@
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rate-limit";
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  // Validate Authorization Header
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
+
+  // 1. Rate Limiting Check
+  const limit = checkRateLimit(`api:metrics:${ip}`, RATE_LIMITS.api);
+  const rateLimitHeaders = getRateLimitHeaders(limit);
+  if (!limit.success) {
+    return new Response("Too many requests", {
+      status: 429,
+      headers: {
+        "Content-Type": "text/plain",
+        ...rateLimitHeaders,
+      },
+    });
+  }
+
+  // 2. Validate Authorization Header (harden to always require expected secret in production)
   const authHeader = request.headers.get("authorization");
   const expectedSecret = process.env.WORKER_API_SECRET;
-  
-  if (expectedSecret && authHeader !== `Bearer ${expectedSecret}`) {
-    return new Response("Unauthorized", { status: 401 });
+  const isDev = process.env.BYPASS_AUTH === "true";
+
+  if (!isDev) {
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return new Response("Unauthorized", {
+        status: 401,
+        headers: {
+          "Content-Type": "text/plain",
+          ...rateLimitHeaders,
+        },
+      });
+    }
   }
 
   const services = await prisma.service.findMany({

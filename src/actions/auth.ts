@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from "@/lib/auth";
+import { headers } from "next/headers";
+import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
 import type { ActionResult } from "@/types";
 
 export async function register(_formData: FormData): Promise<ActionResult> {
@@ -86,6 +88,18 @@ export async function ___register_old(formData: FormData): Promise<ActionResult>
 */
 
 export async function login(formData: FormData): Promise<ActionResult> {
+  const reqHeaders = await headers();
+  const ip = reqHeaders.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
+
+  // Check Rate Limiting
+  const limit = checkRateLimit(`auth:${ip}`, RATE_LIMITS.auth);
+  if (!limit.success) {
+    return {
+      success: false,
+      error: `Too many login attempts. Please try again in ${limit.retryAfter} seconds.`,
+    };
+  }
+
   try {
     await nextAuthSignIn("credentials", {
       email: formData.get("email") as string,

@@ -1,17 +1,35 @@
 import { NextResponse } from "next/server";
 import { checkAllServices } from "@/actions/services";
 import { logUnraidMetrics } from "@/actions/unraid";
+import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  // Verify worker secret (skip in dev with BYPASS_AUTH)
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
+
+  // 1. Rate Limiting Check
+  const limit = checkRateLimit(`api:cron:${ip}`, RATE_LIMITS.api);
+  const rateLimitHeaders = getRateLimitHeaders(limit);
+  if (!limit.success) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: rateLimitHeaders }
+    );
+  }
+
+  // 2. Authentication Check
   const authHeader = request.headers.get("authorization");
   const expectedSecret = process.env.WORKER_API_SECRET;
   const isDev = process.env.BYPASS_AUTH === "true";
 
-  if (expectedSecret && !isDev && authHeader !== `Bearer ${expectedSecret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isDev) {
+    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: rateLimitHeaders }
+      );
+    }
   }
 
   try {
