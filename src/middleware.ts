@@ -8,7 +8,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Allow public paths
-  const publicPaths = ["/login", "/setup", "/api/auth", "/api/health", "/api/cron"];
+  const publicPaths = ["/login", "/setup", "/api/auth", "/api/health", "/api/cron", "/api/metrics"];
   const isPublic = publicPaths.some((path) => pathname.startsWith(path));
   if (isPublic) return NextResponse.next();
 
