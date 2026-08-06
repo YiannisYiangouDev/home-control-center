@@ -143,6 +143,58 @@ export async function checkService(serviceId: string): Promise<ActionResult> {
         ).catch((e) => console.error("Webhook recovery notification error:", e));
       }
 
+      // High latency alert checks (> 2500ms)
+      const isHighLatency = isOnline && responseTime > 2500;
+      const latencyAlertTitle = `High latency on ${service.name}`;
+
+      if (isHighLatency) {
+        const recentAlert = await prisma.alert.findFirst({
+          where: {
+            serviceId,
+            title: latencyAlertTitle,
+            status: "ACTIVE",
+          },
+        });
+
+        if (!recentAlert) {
+          await prisma.alert.create({
+            data: {
+              serviceId,
+              severity: "WARNING",
+              title: latencyAlertTitle,
+              message: `Service ${service.name} response time is very high: ${responseTime}ms (threshold: 2500ms)`,
+            },
+          });
+
+          sendAlertNotification(
+            "Service High Latency Warning",
+            `Service ${service.name} (${service.url}) is responding slowly: ${responseTime}ms.`,
+            false
+          ).catch((e) => console.error("Webhook latency alert error:", e));
+        }
+      } else {
+        const activeLatencyAlert = await prisma.alert.findFirst({
+          where: {
+            serviceId,
+            title: latencyAlertTitle,
+            status: "ACTIVE",
+          },
+        });
+
+        if (activeLatencyAlert) {
+          await prisma.alert.update({
+            where: { id: activeLatencyAlert.id },
+            data: { status: "RESOLVED", resolvedAt: new Date() },
+          });
+
+          sendAlertNotification(
+            "Service Latency Recovered",
+            `Service ${service.name} (${service.url}) response time returned to normal: ${responseTime}ms.`,
+            true
+          ).catch((e) => console.error("Webhook latency recovery error:", e));
+        }
+      }
+
       return { success: true };
     } catch {
       clearTimeout(timeout);
@@ -186,6 +238,19 @@ export async function checkService(serviceId: string): Promise<ActionResult> {
           ).catch((e) => console.error("Webhook offline notification error:", e));
         }
       }
+
+      // Auto-resolve any high latency alerts when service goes offline
+      await prisma.alert.updateMany({
+        where: {
+          serviceId,
+          title: `High latency on ${service.name}`,
+          status: "ACTIVE",
+        },
+        data: {
+          status: "RESOLVED",
+          resolvedAt: new Date(),
+        },
+      });
 
       return { success: false, error: "Service unreachable" };
     }

@@ -152,6 +152,79 @@ export async function logUnraidMetrics() {
         ).catch((e) => console.error("Webhook temp recovery error:", e));
       }
     }
+
+    // 5. Critical Docker container crash alerts
+    const monitoredNamesStr = process.env.MONITORED_CONTAINERS;
+    if (monitoredNamesStr) {
+      const monitoredNames = monitoredNamesStr
+        .split(",")
+        .map((name) => name.trim().toLowerCase())
+        .filter(Boolean);
+
+      if (monitoredNames.length > 0) {
+        const containersResponse = await client.getDockerContainers().catch(() => null);
+        const containersList = containersResponse?.docker?.containers || [];
+
+        for (const name of monitoredNames) {
+          const matched = containersList.find((c: any) =>
+            c.names.some((n: string) => n.toLowerCase().includes(name))
+          );
+
+          if (matched) {
+            const isDown = matched.state.toLowerCase() !== "running";
+            const alertTitle = `Docker Container Down: ${name}`;
+
+            if (isDown) {
+              const recentAlert = await prisma.alert.findFirst({
+                where: {
+                  serverId: "unraid",
+                  title: alertTitle,
+                  status: "ACTIVE",
+                },
+              });
+
+              if (!recentAlert) {
+                await prisma.alert.create({
+                  data: {
+                    serverId: "unraid",
+                    severity: "CRITICAL",
+                    title: alertTitle,
+                    message: `Docker container '${name}' status is '${matched.status}' (state: ${matched.state})`,
+                  },
+                });
+
+                sendAlertNotification(
+                  "Docker Container Down",
+                  `Container '${name}' is not running (state: ${matched.state}, status: ${matched.status}) on your Unraid server.`,
+                  false
+                ).catch((e) => console.error("Webhook docker alert error:", e));
+              }
+            } else {
+              const activeAlert = await prisma.alert.findFirst({
+                where: {
+                  serverId: "unraid",
+                  title: alertTitle,
+                  status: "ACTIVE",
+                },
+              });
+
+              if (activeAlert) {
+                await prisma.alert.update({
+                  where: { id: activeAlert.id },
+                  data: { status: "RESOLVED", resolvedAt: new Date() },
+                });
+
+                sendAlertNotification(
+                  "Docker Container Recovered",
+                  `Docker container '${name}' has recovered and is running successfully.`,
+                  true
+                ).catch((e) => console.error("Webhook docker recovery error:", e));
+              }
+            }
+          }
+        }
+      }
+    }
   } catch (error) {
     console.error("Failed to log Unraid metrics:", error);
   }
