@@ -3,6 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createUnraidClient } from "@/services/unraid/client";
+import { sendAlertNotification } from "@/lib/notifications";
 import type { ActionResult } from "@/types";
 
 export async function logUnraidMetrics() {
@@ -53,6 +54,104 @@ export async function logUnraidMetrics() {
         timestamp: new Date(),
       },
     });
+
+    // 3. Storage capacity alerts checks (> 90%)
+    if (storageUsagePercent !== undefined && storageUsagePercent > 90) {
+      const recentAlert = await prisma.alert.findFirst({
+        where: {
+          serverId: "unraid",
+          title: "Unraid storage usage high",
+          status: "ACTIVE",
+        },
+      });
+
+      if (!recentAlert) {
+        await prisma.alert.create({
+          data: {
+            serverId: "unraid",
+            severity: "WARNING",
+            title: "Unraid storage usage high",
+            message: `Unraid server storage usage has reached ${Math.round(storageUsagePercent)}%`,
+          },
+        });
+
+        sendAlertNotification(
+          "Unraid Storage Warning",
+          `Storage usage has reached ${Math.round(storageUsagePercent)}% on your Unraid Array.`,
+          false
+        ).catch((e) => console.error("Webhook storage alert error:", e));
+      }
+    } else {
+      const activeAlert = await prisma.alert.findFirst({
+        where: {
+          serverId: "unraid",
+          title: "Unraid storage usage high",
+          status: "ACTIVE",
+        },
+      });
+
+      if (activeAlert) {
+        await prisma.alert.update({
+          where: { id: activeAlert.id },
+          data: { status: "RESOLVED", resolvedAt: new Date() },
+        });
+
+        sendAlertNotification(
+          "Unraid Storage Recovered",
+          `Storage usage has returned to normal (${storageUsagePercent ? Math.round(storageUsagePercent) : 0}%).`,
+          true
+        ).catch((e) => console.error("Webhook storage recovery error:", e));
+      }
+    }
+
+    // 4. Drive temperature alerts checks (> 45°C)
+    if (maxDiskTemp !== undefined && maxDiskTemp > 45) {
+      const recentAlert = await prisma.alert.findFirst({
+        where: {
+          serverId: "unraid",
+          title: "Unraid disk temperature high",
+          status: "ACTIVE",
+        },
+      });
+
+      if (!recentAlert) {
+        await prisma.alert.create({
+          data: {
+            serverId: "unraid",
+            severity: "CRITICAL",
+            title: "Unraid disk temperature high",
+            message: `Unraid drive temperature has reached ${maxDiskTemp}°C`,
+          },
+        });
+
+        sendAlertNotification(
+          "Unraid Disk Temperature Critical",
+          `A disk on your Unraid Array has reached a critical temperature of ${maxDiskTemp}°C.`,
+          false
+        ).catch((e) => console.error("Webhook temp alert error:", e));
+      }
+    } else {
+      const activeAlert = await prisma.alert.findFirst({
+        where: {
+          serverId: "unraid",
+          title: "Unraid disk temperature high",
+          status: "ACTIVE",
+        },
+      });
+
+      if (activeAlert) {
+        await prisma.alert.update({
+          where: { id: activeAlert.id },
+          data: { status: "RESOLVED", resolvedAt: new Date() },
+        });
+
+        sendAlertNotification(
+          "Unraid Disk Temperature Recovered",
+          `All disk temperatures on your Unraid Array have returned to normal (${maxDiskTemp}°C).`,
+          true
+        ).catch((e) => console.error("Webhook temp recovery error:", e));
+      }
+    }
   } catch (error) {
     console.error("Failed to log Unraid metrics:", error);
   }
