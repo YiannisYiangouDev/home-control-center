@@ -6,6 +6,8 @@ export async function sendAlertNotification(
   const discordUrl = process.env.DISCORD_WEBHOOK_URL;
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
   const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+  const gotifyUrl = process.env.GOTIFY_URL;
+  const gotifyToken = process.env.GOTIFY_APP_TOKEN;
 
   const promises: Promise<unknown>[] = [];
 
@@ -49,6 +51,25 @@ export async function sendAlertNotification(
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       }).catch((e) => console.error("Telegram alert dispatch error:", e))
+    );
+  }
+
+  // Gotify Message
+  if (gotifyUrl && gotifyToken) {
+    const cleanUrl = gotifyUrl.endsWith("/") ? gotifyUrl.slice(0, -1) : gotifyUrl;
+    const url = `${cleanUrl}/message?token=${gotifyToken}`;
+    const payload = {
+      title: title,
+      message: message,
+      priority: isRecovery ? 5 : 8, // Gotify priority (5 = normal, 8 = high)
+    };
+
+    promises.push(
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }).catch((e) => console.error("Gotify alert dispatch error:", e))
     );
   }
 
