@@ -17,7 +17,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { createService } from "@/actions/services";
+import { createService, pollAllServices } from "@/actions/services";
 import { RefreshButton } from "@/components/dashboard/RefreshButton";
 import type { Service } from "@prisma/client";
 
@@ -185,7 +185,7 @@ export function ServicesClient({ services, history = {} }: ServicesClientProps) 
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
               <input type="text" placeholder="Search services..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 pr-4 py-2 rounded-lg bg-bg-surface border border-border-default text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary-500/50 w-52" />
             </div>
-            <RefreshButton className="py-2" />
+            <RefreshButton onRefresh={pollAllServices} className="py-2" />
             <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-primary-600 to-primary-500 text-white text-sm font-medium shadow-lg shadow-primary-500/20 hover:from-primary-500 hover:to-primary-400 transition-all">
               <Plus className="w-4 h-4" /> Add Service
             </button>

@@ -304,3 +304,23 @@ export async function getServicesHistory(hours = 24) {
 
   return history;
 }
+
+export async function pollAllServices(): Promise<ActionResult> {
+  const session = process.env.BYPASS_AUTH === "true" ? { user: { role: "ADMIN" } } : await auth();
+  if (!session) {
+    return { success: false, error: "Unauthorized" };
+  }
+
+  try {
+    const services = await prisma.service.findMany({
+      where: { isActive: true },
+    });
+    
+    // Perform active pings in parallel for rapid UI update
+    await Promise.all(services.map((s) => checkService(s.id)));
+    return { success: true, message: `Polled ${services.length} services` };
+  } catch (error) {
+    console.error("Failed to poll services on-demand:", error);
+    return { success: false, error: "Polling failed" };
+  }
+}

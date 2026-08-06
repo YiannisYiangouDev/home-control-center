@@ -89,6 +89,7 @@ export function UnraidOverviewClient({ systemInfo, arrayStatus, history = [] }: 
   const cpuPct = metrics?.cpu?.percentTotal;
   const memInfo = metrics?.memory;
   const memUsagePercent = memInfo ? Math.round(memInfo.percentTotal) : 0;
+  const memUsedGB = memInfo ? ((Number(memInfo.total) - Number(memInfo.available || memInfo.free)) / (1024 * 1024 * 1024)) : 0;
   const memTotalGB = memInfo ? (Number(memInfo.total) / (1024 * 1024 * 1024)).toFixed(0) : null;
   const formattedHistory = history.map((h: any) => ({
     ...h,
@@ -121,11 +122,18 @@ export function UnraidOverviewClient({ systemInfo, arrayStatus, history = [] }: 
             label={cpuPct != null ? "CPU" : "CPU (no live data)"}
             color={cpuPct != null ? "#00b4d8" : "#9ca3af"}
           />
-          <CpuGauge
-            value={memUsagePercent}
-            label="RAM"
-            color={memUsagePercent > 0 ? "#00b4d8" : "#9ca3af"}
-          />
+          <div className="flex flex-col items-center">
+            <CpuGauge
+              value={memUsagePercent}
+              label="RAM"
+              color={memUsagePercent > 0 ? "#00b4d8" : "#9ca3af"}
+            />
+            {memTotalGB && (
+              <span className="text-[10px] text-text-muted mt-1 font-medium">
+                {memUsedGB.toFixed(1)} / {memTotalGB} GB
+              </span>
+            )}
+          </div>
           <CpuGauge value={storageUsagePercent} label="Storage Used" color="#f59e0b" />
           <CpuGauge value={maxDiskTemp} size={120} label="Max Disk Temp" color="#f87171" maxValue={80} unit="°C" />
         </div>

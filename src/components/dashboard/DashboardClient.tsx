@@ -90,7 +90,7 @@ function computeMemory(systemInfo: any) {
   if (mem) {
     const totalGB = Number(mem.total) / (1024 * 1024 * 1024);
     const freeGB = Number(mem.free) / (1024 * 1024 * 1024);
-    const usedGB = Number(mem.used) / (1024 * 1024 * 1024);
+    const usedGB = (Number(mem.total) - Number(mem.available || mem.free)) / (1024 * 1024 * 1024);
     const pct = typeof mem.percentTotal === "number" ? Math.round(mem.percentTotal) : (totalGB > 0 ? Math.round((usedGB / totalGB) * 100) : 0);
     const swapTotal = Number(mem.swapTotal || 0) / (1024 * 1024 * 1024);
     const swapFree = Number(mem.swapFree || 0) / (1024 * 1024 * 1024);
