@@ -1,5 +1,6 @@
 import { getUnraidArrayStatus } from "@/actions/unraid";
 import { StorageClient } from "@/components/unraid/StorageClient";
+import { RefreshButton } from "@/components/dashboard/RefreshButton";
 
 export const dynamic = "force-dynamic";
 
@@ -8,9 +9,12 @@ export default async function UnraidStoragePage() {
 
   return (
     <div className="space-y-6 page-container">
-      <div>
-        <h1 className="text-2xl font-bold text-text-primary">Storage</h1>
-        <p className="text-sm text-text-muted mt-1">Disk health, SMART data, and array status</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary">Storage</h1>
+          <p className="text-sm text-text-muted mt-1">Disk health, SMART data, and array status</p>
+        </div>
+        <RefreshButton />
       </div>
 
       <StorageClient arrayStatus={arrayStatus} />

@@ -7,14 +7,18 @@ import { cn } from "@/lib/utils";
 
 interface RefreshButtonProps {
   className?: string;
+  onRefresh?: () => Promise<unknown>;
 }
 
-export function RefreshButton({ className }: RefreshButtonProps) {
+export function RefreshButton({ className, onRefresh }: RefreshButtonProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const handleRefresh = () => {
-    startTransition(() => {
+    startTransition(async () => {
+      if (onRefresh) {
+        await onRefresh().catch((err) => console.error("Refresh action failed:", err));
+      }
       router.refresh();
     });
   };
