@@ -3,9 +3,13 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { serviceSchema } from "@/lib/validators";
+import { sendAlertNotification } from "@/lib/notifications";
 import type { ActionResult } from "@/types";
 
 export async function getServices() {
+  const session = await auth();
+  if (!session) return [];
+
   const services = await prisma.service.findMany({
     orderBy: [{ status: "asc" }, { name: "asc" }],
     include: {
@@ -98,6 +102,10 @@ export async function checkService(serviceId: string): Promise<ActionResult> {
       const responseTime = Date.now() - start;
       const isOnline = response.status === service.expectedStatus;
 
+      // Detect transition from OFFLINE/DEGRADED to ONLINE (Recovery)
+      const wasOffline = service.status === "OFFLINE" || service.status === "DEGRADED";
+      const isTransitionToOnline = wasOffline && isOnline;
+
       await prisma.service.update({
         where: { id: serviceId },
         data: {
@@ -117,9 +125,30 @@ export async function checkService(serviceId: string): Promise<ActionResult> {
         },
       });
 
+      if (isTransitionToOnline) {
+        // Resolve any active alerts for this service
+        await prisma.alert.updateMany({
+          where: { serviceId, status: "ACTIVE" },
+          data: {
+            status: "RESOLVED",
+            resolvedAt: new Date(),
+          },
+        });
+
+        // Trigger webhook alert
+        sendAlertNotification(
+          `${service.name} is back online`,
+          `Service ${service.name} (${service.url}) recovered successfully and is responding with status ${response.status}.`,
+          true
+        ).catch((e) => console.error("Webhook recovery notification error:", e));
+      }
+
       return { success: true };
     } catch {
       clearTimeout(timeout);
+
+      // Detect transition from ONLINE/DEGRADED to OFFLINE
+      const wasOnline = service.status === "ONLINE" || service.status === "DEGRADED";
 
       await prisma.service.update({
         where: { id: serviceId },
@@ -147,6 +176,15 @@ export async function checkService(serviceId: string): Promise<ActionResult> {
             message: `Service ${service.name} (${service.url}) is not responding`,
           },
         });
+
+        if (wasOnline) {
+          // Trigger webhook alert
+          sendAlertNotification(
+            `${service.name} is offline`,
+            `Service ${service.name} (${service.url}) is not responding.`,
+            false
+          ).catch((e) => console.error("Webhook offline notification error:", e));
+        }
       }
 
       return { success: false, error: "Service unreachable" };

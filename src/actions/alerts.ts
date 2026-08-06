@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import type { ActionResult } from "@/types";
 
 export async function getAlerts(status?: string) {
+  const session = await auth();
+  if (!session) return [];
+
   const where = status ? { status: status as "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED" } : {};
 
   return prisma.alert.findMany({
