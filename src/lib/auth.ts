@@ -39,6 +39,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (!user) return null;
 
+        // IP-layer throttle: gate BEFORE bcrypt so a throttled source
+        // cannot keep hammering (or lock the account out repeatedly).
+        const ipLimit = checkRateLimit(`fail:${ip}`, {
+          maxRequests: 10,
+          windowSeconds: 300,
+        });
+        if (!ipLimit.success) {
+          throw new Error("Too many login attempts. Please try again later.");
+        }
+
         // Check if account is locked
         if (user.lockedUntil && user.lockedUntil > new Date()) {
           throw new Error("Account is temporarily locked. Please try again later.");
