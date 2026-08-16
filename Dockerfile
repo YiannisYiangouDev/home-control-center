@@ -25,6 +25,10 @@ RUN npx prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
+# Prune dev deps: the runner needs only production deps + Prisma engines
+# (the entrypoint runs prisma migrate deploy).
+RUN npm prune --omit=dev
+
 # Stage 3: Production runner
 FROM node:22-alpine AS runner
 RUN apk add --no-cache libc6-compat openssl
@@ -43,9 +47,7 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Runner needs only production deps + Prisma engines (the entrypoint runs
-# prisma migrate deploy). Prune dev deps in the builder, then copy.
-RUN cd /app && npm prune --omit=dev
+# Runner gets the already-pruned production node_modules from the builder.
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 

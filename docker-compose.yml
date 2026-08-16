@@ -15,7 +15,7 @@ services:
     container_name: hcc-app
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3000:3000"
     environment:
       - DATABASE_URL=mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@mysql:3306/${MYSQL_DATABASE}
       - AUTH_SECRET=${AUTH_SECRET}
