@@ -5,7 +5,10 @@ echo "🏠 Home Control Center — Starting up..."
 
 # Run database migrations
 echo "📦 Running database migrations..."
-npx prisma migrate deploy 2>/dev/null || echo "⚠️  Migrations skipped (database may not be ready yet)"
+if ! npx prisma migrate deploy; then
+  echo "❌ Database migration failed — aborting startup." >&2
+  exit 1
+fi
 
 echo "🚀 Starting application..."
 exec "$@"

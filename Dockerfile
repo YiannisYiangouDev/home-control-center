@@ -9,7 +9,7 @@ RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma/
-RUN npm ci 2>/dev/null || npm install
+RUN npm ci
 
 # Stage 2: Build the application
 FROM node:22-alpine AS builder
@@ -43,7 +43,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma files for migrations
+# Runner needs only production deps + Prisma engines (the entrypoint runs
+# prisma migrate deploy). Prune dev deps in the builder, then copy.
+RUN cd /app && npm prune --omit=dev
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules ./node_modules
 
