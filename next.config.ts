@@ -34,7 +34,14 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self' ws://localhost:* wss://localhost:* http://192.168.* https://arxeia.yiangouweb.com; frame-ancestors 'none';",
+            value:
+              "default-src 'self'; " +
+              "script-src 'self' 'unsafe-inline'; " +
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+              "font-src 'self' https://fonts.gstatic.com; " +
+              "img-src 'self' blob: data:; " +
+              "connect-src 'self' ws://localhost:* wss://localhost:*; " +
+              "frame-ancestors 'none';",
           },
           {
             key: "X-Frame-Options",
