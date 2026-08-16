@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -94,4 +95,11 @@ export function timeAgo(date: Date | string): string {
 
 export function generateId(): string {
   return crypto.randomUUID();
+}
+
+export function safeEqual(a: string, b: string): boolean {
+  const ba = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ba.length !== bb.length) return false;
+  return timingSafeEqual(ba, bb);
 }

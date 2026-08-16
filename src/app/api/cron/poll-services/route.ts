@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { checkAllServices } from "@/actions/services";
 import { logUnraidMetrics } from "@/actions/unraid";
 import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders, getClientIp } from "@/lib/rate-limit";
+import { safeEqual } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,8 @@ export async function GET(request: Request) {
   const isDev = process.env.BYPASS_AUTH === "true";
 
   if (!isDev) {
-    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+    const provided = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!expectedSecret || !safeEqual(provided, expectedSecret)) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401, headers: rateLimitHeaders }

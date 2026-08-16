@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders, getClientIp } from "@/lib/rate-limit";
+import { safeEqual } from "@/lib/utils";
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -24,7 +25,8 @@ export async function GET(request: NextRequest) {
   const isDev = process.env.BYPASS_AUTH === "true";
 
   if (!isDev) {
-    if (!expectedSecret || authHeader !== `Bearer ${expectedSecret}`) {
+    const provided = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!expectedSecret || !safeEqual(provided, expectedSecret)) {
       return new Response("Unauthorized", {
         status: 401,
         headers: {
