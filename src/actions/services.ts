@@ -80,7 +80,17 @@ export async function deleteService(serviceId: string): Promise<ActionResult> {
   }
 }
 
-export async function checkService(serviceId: string): Promise<ActionResult> {
+export async function checkService(
+  serviceId: string,
+  opts?: { internal?: boolean }
+): Promise<ActionResult> {
+  if (!opts?.internal) {
+    const session = await auth();
+    if (!session || (session.user as { role: string }).role !== "ADMIN") {
+      return { success: false, error: "Unauthorized" };
+    }
+  }
+
   try {
     const service = await prisma.service.findUnique({
       where: { id: serviceId },
@@ -260,12 +270,14 @@ export async function checkService(serviceId: string): Promise<ActionResult> {
 }
 
 export async function checkAllServices(): Promise<ActionResult> {
+  // Reachable only via the bearer-secret-protected cron route
+  // (WORKER_API_SECRET validated in the route handler) or an ADMIN session.
   const services = await prisma.service.findMany({
     where: { isActive: true },
   });
 
   for (const service of services) {
-    await checkService(service.id);
+    await checkService(service.id, { internal: true });
   }
 
   return { success: true, message: `Checked ${services.length} services` };
