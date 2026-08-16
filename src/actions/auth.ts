@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from "@/lib/auth";
 import { headers } from "next/headers";
-import { checkRateLimit, RATE_LIMITS } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMITS, getClientIp } from "@/lib/rate-limit";
 import type { ActionResult } from "@/types";
 
 export async function register(_formData: FormData): Promise<ActionResult> {
@@ -89,7 +89,7 @@ export async function ___register_old(formData: FormData): Promise<ActionResult>
 
 export async function login(formData: FormData): Promise<ActionResult> {
   const reqHeaders = await headers();
-  const ip = reqHeaders.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
+  const ip = getClientIp(reqHeaders);
 
   // Check Rate Limiting
   const limit = checkRateLimit(`auth:${ip}`, RATE_LIMITS.auth);

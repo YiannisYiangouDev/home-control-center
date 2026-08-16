@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validators";
 import { MAX_LOGIN_ATTEMPTS, LOCKOUT_DURATION_MINUTES } from "@/lib/constants";
 import { authConfig } from "./auth.config";
+import { headers } from "next/headers";
+import { checkRateLimit, RATE_LIMITS, getClientIp } from "@/lib/rate-limit";
 import { validateSecrets, assertNoBypassAuth } from "./env-validate";
 
 validateSecrets();
@@ -22,6 +24,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials);
         if (!parsed.success) return null;
+
+        const ip = getClientIp(await headers());
+        const limit = checkRateLimit(`auth:${ip}`, RATE_LIMITS.auth);
+        if (!limit.success) {
+          throw new Error("Too many login attempts. Please try again later.");
+        }
 
         const { email, password } = parsed.data;
 

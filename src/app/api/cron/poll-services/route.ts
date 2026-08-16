@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { checkAllServices } from "@/actions/services";
 import { logUnraidMetrics } from "@/actions/unraid";
-import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders, getClientIp } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
+  const ip = getClientIp(request.headers);
 
   // 1. Rate Limiting Check
   const limit = checkRateLimit(`api:cron:${ip}`, RATE_LIMITS.api);

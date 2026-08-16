@@ -86,3 +86,15 @@ export function getRateLimitHeaders(result: RateLimitResult): Record<string, str
   }
   return headers;
 }
+
+export function getClientIp(headers: Headers): string {
+  const xff = headers.get("x-forwarded-for");
+  if (xff) {
+    const entries = xff
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (entries.length) return entries[entries.length - 1];
+  }
+  return headers.get("x-real-ip") || "127.0.0.1";
+}

@@ -1,9 +1,9 @@
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rate-limit";
+import { checkRateLimit, RATE_LIMITS, getRateLimitHeaders, getClientIp } from "@/lib/rate-limit";
 import type { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim() || "127.0.0.1";
+  const ip = getClientIp(request.headers);
 
   // 1. Rate Limiting Check
   const limit = checkRateLimit(`api:metrics:${ip}`, RATE_LIMITS.api);
