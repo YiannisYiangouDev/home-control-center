@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { safeFetch } from "@/lib/safe-fetch";
 import { serviceSchema } from "@/lib/validators";
 import { sendAlertNotification } from "@/lib/notifications";
 import type { ActionResult } from "@/types";
@@ -102,10 +103,9 @@ export async function checkService(
     const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
-      const response = await fetch(service.url, {
+      const response = await safeFetch(service.url, {
         signal: controller.signal,
         method: "HEAD",
-        redirect: "follow",
       });
       clearTimeout(timeout);
 

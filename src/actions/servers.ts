@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { serverSchema } from "@/lib/validators";
 import { encryptCredentials, decryptCredentials } from "@/lib/crypto";
+import { safeFetch } from "@/lib/safe-fetch";
 import type { ActionResult } from "@/types";
 
 export async function getServers() {
@@ -126,7 +127,7 @@ export async function testServerConnection(
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10000);
 
-    const response = await fetch(server.address, {
+    const response = await safeFetch(server.address, {
       signal: controller.signal,
       method: "HEAD",
     });
