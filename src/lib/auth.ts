@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validators";
 import { MAX_LOGIN_ATTEMPTS, LOCKOUT_DURATION_MINUTES } from "@/lib/constants";
 import { authConfig } from "./auth.config";
+import { totp } from "@/lib/totp";
 import { headers } from "next/headers";
 import { checkRateLimit, RATE_LIMITS, getClientIp } from "@/lib/rate-limit";
 import { validateSecrets, assertNoBypassAuth } from "./env-validate";
@@ -20,6 +21,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totp: { label: "2FA Code", type: "text" },
       },
       async authorize(credentials) {
         const parsed = loginSchema.safeParse(credentials);
@@ -75,6 +77,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           return null;
+        }
+
+        // TOTP 2FA: required for ADMIN accounts with 2FA enabled
+        if (user.role === "ADMIN" && user.totpSecret) {
+          const totpVal = credentials.totp as string | undefined;
+          if (!totpVal || !totp.check(totpVal, user.totpSecret)) {
+            throw new Error("Invalid 2FA code");
+          }
         }
 
         // Reset failed attempts on successful login
