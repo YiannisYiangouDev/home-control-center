@@ -5,6 +5,10 @@ import { prisma } from "@/lib/prisma";
 import { loginSchema } from "@/lib/validators";
 import { MAX_LOGIN_ATTEMPTS, LOCKOUT_DURATION_MINUTES } from "@/lib/constants";
 import { authConfig } from "./auth.config";
+import { validateSecrets, assertNoBypassAuth } from "./env-validate";
+
+validateSecrets();
+assertNoBypassAuth();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
