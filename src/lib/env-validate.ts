@@ -11,6 +11,10 @@ const WEAK = [
 const MIN_SECRET_LENGTH = 32;
 
 export function validateSecrets(): void {
+  // Skip validation during production builds: next build imports route/action
+  // modules, and the build host may legitimately lack runtime secrets.
+  if (process.env.NEXT_PHASE === "phase-production-build") return;
+
   for (const [name, val] of Object.entries({
     AUTH_SECRET: process.env.AUTH_SECRET,
     WORKER_API_SECRET: process.env.WORKER_API_SECRET,
