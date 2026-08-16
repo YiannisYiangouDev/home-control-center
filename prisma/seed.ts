@@ -18,7 +18,13 @@ async function main() {
 
   // Create admin user
   const adminEmail = process.env.ADMIN_EMAIL || "admin@homeserver.local";
-  const adminPassword = process.env.ADMIN_PASSWORD || "Admin123!";
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword || adminPassword.length < 12) {
+    console.error(
+      "FATAL: ADMIN_PASSWORD must be set (>= 12 chars) before seeding."
+    );
+    process.exit(1);
+  }
   const passwordHash = await bcrypt.hash(adminPassword, 12);
 
   const admin = await prisma.user.create({
