@@ -57,7 +57,7 @@ export async function sendAlertNotification(
   // Gotify Message
   if (gotifyUrl && gotifyToken) {
     const cleanUrl = gotifyUrl.endsWith("/") ? gotifyUrl.slice(0, -1) : gotifyUrl;
-    const url = `${cleanUrl}/message?token=${gotifyToken}`;
+    const url = `${cleanUrl}/message`;
     const payload = {
       title: title,
       message: message,
@@ -67,7 +67,10 @@ export async function sendAlertNotification(
     promises.push(
       fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Gotify-Key": gotifyToken,
+        },
         body: JSON.stringify(payload),
       }).catch((e) => console.error("Gotify alert dispatch error:", e))
     );

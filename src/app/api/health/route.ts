@@ -10,7 +10,6 @@ export async function GET() {
       {
         status: "healthy",
         timestamp: new Date().toISOString(),
-        version: process.env.npm_package_version || "1.0.0",
         database: "connected",
       },
       { status: 200 }
