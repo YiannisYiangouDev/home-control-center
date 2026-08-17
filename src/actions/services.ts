@@ -329,7 +329,7 @@ export async function pollAllServices(): Promise<ActionResult> {
     });
     
     // Perform active pings in parallel for rapid UI update
-    await Promise.all(services.map((s) => checkService(s.id)));
+    await Promise.all(services.map((s) => checkService(s.id, { internal: true })));
     return { success: true, message: `Polled ${services.length} services` };
   } catch (error) {
     console.error("Failed to poll services on-demand:", error);

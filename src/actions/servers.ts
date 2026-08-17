@@ -115,7 +115,9 @@ export async function testServerConnection(
   serverId: string
 ): Promise<ActionResult> {
   const session = await auth();
-  if (!session) return { success: false, error: "Unauthorized" };
+  if (!session || (session.user as { role: string }).role !== "ADMIN") {
+    return { success: false, error: "Unauthorized" };
+  }
 
   try {
     const server = await prisma.server.findUnique({
