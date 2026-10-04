@@ -32,6 +32,8 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - VAPID_SUBJECT=${VAPID_SUBJECT}
       - WORKER_API_SECRET=${WORKER_API_SECRET}
+      - GOTIFY_URL=${GOTIFY_URL}
+      - GOTIFY_APP_TOKEN=${GOTIFY_APP_TOKEN}
     depends_on:
       mysql:
         condition: service_healthy
