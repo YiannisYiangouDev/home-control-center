@@ -225,6 +225,67 @@ export async function logUnraidMetrics() {
         }
       }
     }
+    // 6. CPU load alert (> 90% sustained over the last 3 samples)
+    if (cpuPct != null) {
+      const cpuValue = Number(cpuPct);
+      const recentSamples = await prisma.metric.findMany({
+        where: { serverId: "unraid", cpu: { not: null } },
+        orderBy: { timestamp: "desc" },
+        take: 3,
+      });
+      const sustainedHighCpu =
+        recentSamples.length >= 3 &&
+        recentSamples.every((m) => Number(m.cpu) > 90);
+
+      if (sustainedHighCpu) {
+        const recentAlert = await prisma.alert.findFirst({
+          where: {
+            serverId: "unraid",
+            title: "Unraid CPU load high",
+            status: "ACTIVE",
+          },
+        });
+
+        if (!recentAlert) {
+          await prisma.alert.create({
+            data: {
+              serverId: "unraid",
+              severity: "WARNING",
+              title: "Unraid CPU load high",
+              message: `Unraid CPU load has been above 90% (currently ${Math.round(cpuValue)}%)`,
+            },
+          });
+
+          sendAlertNotification(
+            "Unraid CPU Load Warning",
+            `CPU load has exceeded 90% (currently ${Math.round(cpuValue)}%) on your Unraid server.`,
+            false
+          ).catch((e) => console.error("Webhook CPU alert error:", e));
+        }
+      } else {
+        const activeAlert = await prisma.alert.findFirst({
+          where: {
+            serverId: "unraid",
+            title: "Unraid CPU load high",
+            status: "ACTIVE",
+          },
+        });
+
+        if (activeAlert) {
+          await prisma.alert.update({
+            where: { id: activeAlert.id },
+            data: { status: "RESOLVED", resolvedAt: new Date() },
+          });
+
+          sendAlertNotification(
+            "Unraid CPU Load Recovered",
+            `CPU load has returned to normal (${Math.round(cpuValue)}%).`,
+            true
+          ).catch((e) => console.error("Webhook CPU recovery error:", e));
+        }
+      }
+    }
+
   } catch (error) {
     console.error("Failed to log Unraid metrics:", error);
   }
