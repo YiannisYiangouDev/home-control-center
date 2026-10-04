@@ -23,14 +23,15 @@ export async function logUnraidMetrics() {
       },
     });
 
-    // 2. Query current metrics from the client
-    const metricsData = await getUnraidSystemMetrics();
-    const arrayData = await getUnraidArrayStatus();
+    // 2. Query current metrics from the client (direct calls — cron path has no user session)
+    const metricsData = await client.getSystemMetrics();
+    const liveData = await client.getLiveMetrics();
+    const arrayData = await client.getArrayStatus();
 
     if (!metricsData) return;
 
-    const cpuPct = metricsData.metrics?.cpu?.percentTotal;
-    const memUsagePercent = metricsData.metrics?.memory ? Math.round(metricsData.metrics.memory.percentTotal) : undefined;
+    const cpuPct = liveData?.metrics?.cpu?.percentTotal;
+    const memUsagePercent = liveData?.metrics?.memory ? Math.round(liveData.metrics.memory.percentTotal) : undefined;
 
     // Storage capacity calculation
     const disks = arrayData?.disks || [];
