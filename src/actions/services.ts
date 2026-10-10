@@ -103,13 +103,13 @@ export async function checkService(
     const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
-      // Kuma-like: try HEAD first; some servers (e.g. Home Assistant) reject
-      // HEAD with 405 (Gotify 404 on HEAD). Fall back to GET for those.
+      // Kuma-like: try HEAD first; some servers reject HEAD (Home Assistant 405,
+      // Gotify 404, some 501). Fall back to GET for those.
       let response = await safeFetch(service.url, {
         signal: controller.signal,
         method: "HEAD",
       });
-      if (response.status === 405) {
+      if ([404, 405, 501].includes(response.status)) {
         response = await safeFetch(service.url, {
           signal: controller.signal,
           method: "GET",
