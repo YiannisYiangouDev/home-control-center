@@ -3,7 +3,8 @@ import { getServices } from "@/actions/services";
 import { getAlerts } from "@/actions/alerts";
 import { getShortcuts } from "@/actions/shortcuts";
 import { getHAClimate } from "@/actions/homeassistant";
-import { getUnraidSystemMetrics, getUnraidArrayStatus } from "@/actions/unraid";
+import { getUnraidSystemMetrics, getUnraidArrayStatus, getUnraidDockerContainers } from "@/actions/unraid";
+import { getNextcloudServerInfo } from "@/actions/nextcloud";
 import { getLayout } from "@/actions/layout";
 import { getWeather } from "@/actions/weather";
 import { resolveLayout } from "@/components/dashboard/widgets/registry";
@@ -19,6 +20,8 @@ export default async function DashboardPage() {
   let haClimate: any[] = [];
   let systemInfo: any = null;
   let arrayStatus: any = null;
+  let containers: any[] = [];
+  let nextcloud: any = null;
 
   try { services = await getServices(); } catch { /* empty */ }
   try { alerts = await getAlerts("ACTIVE"); } catch { /* empty */ }
@@ -26,6 +29,8 @@ export default async function DashboardPage() {
   try { haClimate = await getHAClimate(); } catch (e) { console.error("HA climate fetch error:", e); }
   try { systemInfo = await getUnraidSystemMetrics(); } catch { /* empty */ }
   try { arrayStatus = await getUnraidArrayStatus(); } catch { /* empty */ }
+  try { containers = await getUnraidDockerContainers().catch(() => []); } catch { /* empty */ }
+  try { nextcloud = await getNextcloudServerInfo(); } catch { /* empty */ }
 
   const savedLayout = await getLayout();
   const layout = resolveLayout(savedLayout);
@@ -43,6 +48,8 @@ export default async function DashboardPage() {
         layout={layout}
         savedLayout={savedLayout}
         weather={weather}
+        containers={containers}
+        nextcloud={nextcloud}
       />
     </Suspense>
   );

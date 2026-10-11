@@ -52,6 +52,8 @@ interface DashboardClientProps {
   layout: { order: WidgetId[]; hidden: Set<WidgetId> };
   savedLayout: { order?: string[]; hidden?: string[] } | null;
   weather: WeatherData | null;
+  containers: readonly any[];
+  nextcloud: any | null;
 }
 
 function formatUptime(uptime?: string) {
@@ -66,7 +68,7 @@ function formatUptime(uptime?: string) {
 }
 
 export function DashboardClient({
-  services, alerts, shortcuts, haClimate, systemInfo, arrayStatus, layout, savedLayout, weather,
+  services, alerts, shortcuts, haClimate, systemInfo, arrayStatus, layout, savedLayout, weather, containers, nextcloud,
 }: DashboardClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -320,25 +322,87 @@ export function DashboardClient({
     ) : null
   );
 
-  const renderContainers = () => (
-    <div className="glass-card-static p-5 h-full">
-      <div className="flex items-center gap-2 mb-4">
-        <Container className="w-4 h-4 text-text-muted" />
-        <h3 className="text-sm font-medium text-text-secondary">Containers</h3>
+  const renderContainers = () => {
+    if (!containers || containers.length === 0) {
+      return (
+        <div className="glass-card-static p-5 h-full">
+          <div className="flex items-center gap-2 mb-4">
+            <Container className="w-4 h-4 text-text-muted" />
+            <h3 className="text-sm font-medium text-text-secondary">Containers</h3>
+          </div>
+          <p className="text-sm text-text-muted">No container data — connect Unraid in Settings.</p>
+        </div>
+      );
+    }
+    const running = containers.filter((c: any) => c.state === "running").length;
+    const containerName = (c: any) => (Array.isArray(c.names) && c.names[0] ? c.names[0].replace(/^\//, "") : c.id?.slice(0, 12) || "?");
+    return (
+      <div className="glass-card-static p-5 h-full">
+        <div className="flex items-center gap-2 mb-4">
+          <Container className="w-4 h-4 text-text-muted" />
+          <h3 className="text-sm font-medium text-text-secondary">Containers</h3>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-bold text-text-primary">{running}</span>
+            <span className="text-sm text-text-muted mb-0.5">/ {containers.length} running</span>
+          </div>
+          <div className="space-y-1.5">
+            {containers.slice(0, 8).map((c: any) => (
+              <div key={c.id} className="flex items-center gap-2 text-sm">
+                <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", c.state === "running" ? "bg-success-400" : "bg-danger-400")} />
+                <span className="truncate text-text-primary">{containerName(c)}</span>
+              </div>
+            ))}
+            {containers.length > 8 && (
+              <p className="text-xs text-text-muted">+{containers.length - 8} more</p>
+            )}
+          </div>
+        </div>
       </div>
-      <p className="text-sm text-text-muted">Docker container list — coming soon.</p>
-    </div>
-  );
+    );
+  };
 
-  const renderNextcloud = () => (
-    <div className="glass-card-static p-5 h-full">
-      <div className="flex items-center gap-2 mb-4">
-        <CloudSun className="w-4 h-4 text-text-muted" />
-        <h3 className="text-sm font-medium text-text-secondary">Nextcloud quota</h3>
+  const renderNextcloud = () => {
+    const st = nextcloud?.storage;
+    if (!st || !st.total) {
+      return (
+        <div className="glass-card-static p-5 h-full">
+          <div className="flex items-center gap-2 mb-4">
+            <HardDrive className="w-4 h-4 text-text-muted" />
+            <h3 className="text-sm font-medium text-text-secondary">Nextcloud quota</h3>
+          </div>
+          <p className="text-sm text-text-muted">Nextcloud not connected.</p>
+        </div>
+      );
+    }
+    const usedGB = st.used / 1e9;
+    const totalGB = st.total / 1e9;
+    const freeGB = st.free / 1e9;
+    const pct = totalGB > 0 ? Math.round((usedGB / totalGB) * 100) : 0;
+    return (
+      <div className="glass-card-static p-5 h-full">
+        <div className="flex items-center gap-2 mb-4">
+          <HardDrive className="w-4 h-4 text-text-muted" />
+          <h3 className="text-sm font-medium text-text-secondary">Nextcloud quota</h3>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-end gap-2">
+            <span className="text-3xl font-bold text-text-primary">{pct}%</span>
+            <span className="text-sm text-text-muted mb-0.5">used</span>
+          </div>
+          <div className="h-2 bg-bg-elevated rounded-full overflow-hidden">
+            <div className="h-full rounded-full bg-[#00b4d8] transition-all" style={{ width: `${pct}%` }} />
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div><span className="text-text-muted block">Used</span><span className="text-text-primary font-medium">{usedGB.toFixed(1)} GB</span></div>
+            <div><span className="text-text-muted block">Free</span><span className="text-text-primary font-medium">{freeGB.toFixed(1)} GB</span></div>
+            <div><span className="text-text-muted block">Files</span><span className="text-text-primary font-medium">{st.numFiles?.toLocaleString?.() ?? st.numFiles ?? "?"}</span></div>
+          </div>
+        </div>
       </div>
-      <p className="text-sm text-text-muted">Coming soon.</p>
-    </div>
-  );
+    );
+  };
 
   const renderWidget = (id: WidgetId) => {
     switch (id) {
